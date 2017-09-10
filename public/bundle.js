@@ -22434,20 +22434,55 @@ module.exports = ReactDOMInvalidARIAHook;
 
 
 var React = __webpack_require__(24);
-var Map = __webpack_require__(187);
 var stores = __webpack_require__(50);
 var findElement = __webpack_require__(83);
+var Map = __webpack_require__(187);
 var CurrentLocation = __webpack_require__(188);
+var Favourites = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"./Favourites\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
 
 var StoreLocator = React.createClass({
   displayName: 'StoreLocator',
-  getInitialState: function getInitialState() {
-    return {
-      lat: 53.4719986,
-      lng: -2.2414979
-    };
-  },
 
+
+  addToFavourites: function addToFavourites(storeId) {
+    var favourites = this.state.favourites;
+
+    favourites.push(storeId);
+
+    this.setState({
+      favourites: favourites
+    });
+
+    localStorage.favourites = JSON.stringify(favourites);
+  },
+  removeFromFavourites: function removeFromFavourites(storeId) {
+    var favourites = this.state.favourites;
+    var storeIdIndex = favourites.indexOf(storeId);
+
+    if (storeIdIndex !== -1) {
+      favourites.splice(storeIdIndex, 1);
+    }
+
+    this.setState({
+      favourites: favourites
+    });
+
+    localStorage.favourites = JSON.stringify(favourites);
+  },
+  isFavourited: function isFavourited(storeId) {
+    var favourites = this.state.favourites;
+
+    return favourites.includes(storeId);
+  },
+  handleToggleFavourite: function handleToggleFavourite(storeId) {
+    if (this.isFavourited(storeId)) {
+      this.removeFromFavourites(storeId);
+
+      return;
+    }
+
+    this.addToFavourites(storeId);
+  },
   handleMarkerClick: function handleMarkerClick(details) {
     var storeId = details.id;
     var store = findElement(stores, storeId);
@@ -22470,7 +22505,16 @@ var StoreLocator = React.createClass({
           { className: 'title' },
           'Store Locator'
         ),
-        React.createElement(CurrentLocation, { storeId: this.state.currentLocation })
+        React.createElement(CurrentLocation, {
+          storeId: this.state.currentLocation,
+          onToggleFavourite: this.handleToggleFavourite,
+          isFavourited: this.isFavourited }),
+        React.createElement(
+          'div',
+          { className: 'title' },
+          'Favourite Stores'
+        ),
+        React.createElement(Favourites, { isFavourited: this.isFavourited, onToggleFavourite: this.handleToggleFavourite, favouriteStores: this.state.favourites })
       ),
       React.createElement(
         'div',
@@ -22546,14 +22590,18 @@ var CurrentLocation = React.createClass({
   displayName: 'CurrentLocation',
 
   render: function render() {
-    var store = findElement(stores, this.props.storeId);
+    var storeId = this.props.storeId;
+    var store = findElement(stores, storeId);
 
     if (store) {
+      var starClass = this.props.isFavourited(storeId) ? 'fa fa-star' : 'fa fa-star-o';
+
       return React.createElement(
         'div',
         { className: 'currentlocation' },
         React.createElement('i', { className: 'fa fa-map-marker', 'aria-hidden': 'true' }),
-        store.title
+        store.title,
+        React.createElement('i', { className: starClass, onClick: this.toggleFavourite })
       );
     }
 
@@ -22563,6 +22611,12 @@ var CurrentLocation = React.createClass({
       React.createElement('i', { className: 'fa fa-map-marker', 'aria-hidden': 'true' }),
       'No store selected'
     );
+  },
+
+  toggleFavourite: function toggleFavourite() {
+    var storeId = this.props.storeId;
+
+    this.props.onToggleFavourite(storeId);
   }
 });
 
